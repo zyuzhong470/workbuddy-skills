@@ -1,0 +1,17 @@
+# Dependency files
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sensitive
+*api_key*
+*secret*
+*token*
+*.key

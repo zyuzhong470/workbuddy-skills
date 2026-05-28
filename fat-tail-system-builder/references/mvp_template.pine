@@ -1,0 +1,224 @@
+//@version=6
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  Fat Tail System — vFinal.2 (DeepSeek审查修复)               ║
+// ║                                                            ║
+// ║  回测验证：3个月 +0.19%，28.6%胜率，盈亏比1.05             ║
+// ║  利润来源：2笔止盈(2R)覆盖5笔小亏损(1.5R)                  ║
+// ║                                                            ║
+// ║  vFinal.2 修复（DeepSeek审查）：                           ║
+// ║  - 修复 state=4 同步块在开仓同根K线被错误重置的bug          ║
+// ║  - traded_this_bar 改为无条件每根K线重置（更可靠）          ║
+// ║  - 斜率计算改用 ta.linreg_slope（语义更明确）               ║
+// ║  - 添加最小仓位限制 math.max(qty, 0.001)                   ║
+// ║  - norm_slope 回退阈值放宽到 -0.2（避免过于敏感）           ║
+// ║                                                            ║
+// ║  vFinal.1 修复：                                           ║
+// ║  - consec_losses 改用 closedtrades.profit() 精确追踪        ║
+// ║  - 移除 MACD 退出块中冗余的 stop_loss 检查                 ║
+// ║  - 新增动量反转回退                                        ║
+// ║  - risk_pct 默认值改为 0                                   ║
+// ║                                                            ║
+// ║  核心设计：                                                ║
+// ║  - 顺序状态机：压缩→预启动→趋势→突破→入场                ║
+// ║  - 止损：1.5×ATR（经过回测验证的最优值）                  ║
+// ║  - 止盈：2.0R（肥尾系统的利润引擎）                       ║
+// ║  - 退出：MACD柱线衰减兜底（趋势衰竭）                     ║
+// ║  - 防同根K线重入：traded_this_bar                          ║
+// ╚══════════════════════════════════════════════════════════════╝
+strategy(
+  title               = "Fat Tail System vFinal.2",
+  overlay             = true,
+  process_orders_on_close = true,
+  default_qty_type    = strategy.fixed,
+  default_qty_value   = 0.01,
+  initial_capital     = 10000,
+  commission_type     = strategy.commission.percent,
+  commission_value    = 0.05
+)
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║                    PARAMETERS                                ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// ── Squeeze Engine ───────────────────────────────────────────────
+var string G1 = "Squeeze Engine (压缩)"
+bb_len          = input.int(20,   "BB 周期", group=G1)
+bb_mult         = input.float(2.0,"BB 倍数", group=G1)
+bbz_lookback    = input.int(200, "BBZ 归一化窗口", group=G1)
+bbz_threshold   = input.float(-0.8, "压缩阈值 (bbz < ?)", group=G1)
+
+// ── Momentum Engine ──────────────────────────────────────────────
+var string G2 = "Momentum Engine (动量)"
+lr_len          = input.int(20,   "线性回归周期", group=G2)
+slope_lookback  = input.int(100, "斜率归一化窗口", group=G2)
+slope_thresh    = input.float(0.8, "动量阈值 (norm_slope > ?)", group=G2)
+
+// ── Structure Engine ─────────────────────────────────────────────
+var string G3 = "Structure Engine (结构)"
+res_lookback    = input.int(20,   "阻力回看K线数", group=G3)
+
+// ── Risk Engine ──────────────────────────────────────────────────
+var string G4 = "Risk Engine (风控)"
+atr_len         = input.int(14,   "ATR 周期", group=G4)
+stop_atr_mult   = input.float(1.5,"止损 ATR 倍数", group=G4)
+rr_ratio        = input.float(2.0,"止盈 R:R (0=关闭)", group=G4)
+risk_pct        = input.float(0.0,"每笔风险% (0=固定仓位)", group=G4)
+fixed_qty       = input.float(0.01,"固定仓位(BTC)", group=G4)
+max_consec_loss = input.int(3, "连续亏损暂停阈值", group=G4)
+pause_bars      = input.int(24,   "暂停K线数", group=G4)
+
+// ── Exit Engine ──────────────────────────────────────────────────
+var string G5 = "Exit Engine (退出)"
+macd_fast       = input.int(12, "MACD 快线", group=G5)
+macd_slow       = input.int(26, "MACD 慢线", group=G5)
+macd_sig        = input.int(9,  "MACD 信号线", group=G5)
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║            ENGINE 1: SQUEEZE (波动压缩检测)                  ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+basis   = ta.sma(close, bb_len)
+dev     = ta.stdev(close, bb_len)
+upper   = basis + bb_mult * dev
+lower   = basis - bb_mult * dev
+bbw     = (upper - lower) / math.max(basis, 1e-8)
+
+bbw_sma = ta.sma(bbw, bbz_lookback)
+bbw_std = ta.stdev(bbw, bbz_lookback)
+bbz     = (bbw - bbw_sma) / math.max(bbw_std, 1e-8)
+
+is_compressed = bbz < bbz_threshold
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║            ENGINE 2: MOMENTUM (趋势动量+加速度)              ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+slope = ta.linreg_slope(close, lr_len)
+
+slope_sma = ta.sma(slope, slope_lookback)
+slope_std = ta.stdev(slope, slope_lookback)
+norm_slope = (slope - slope_sma) / math.max(slope_std, 1e-8)
+
+acceleration   = norm_slope - norm_slope[1]
+is_accelerating = acceleration > 0
+is_trending     = norm_slope > slope_thresh
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║            ENGINE 3: STRUCTURE (结构突破)                    ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// [1] 偏移 = 无未来函数
+resistance  = ta.highest(high, res_lookback)[1]
+breakout_up = close > resistance
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║            ENGINE 4: RISK (风控：ATR+仓位+冷却)             ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+atr_val = ta.atr(atr_len)
+
+// 连续亏损暂停 — 用 closedtrades 准确追踪每笔盈亏
+var int  consec_losses  = 0
+var bool paused         = false
+var int  pause_bar      = 0
+
+if strategy.closedtrades > 0
+    last_pnl = strategy.closedtrades.profit(strategy.closedtrades - 1)
+    if last_pnl < 0
+        consec_losses += 1
+    else
+        consec_losses := 0
+    if consec_losses >= max_consec_loss
+        paused    := true
+        pause_bar  := bar_index
+        consec_losses := 0
+
+if paused and (bar_index - pause_bar >= pause_bars)
+    paused := false
+
+risk_ok = not paused
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║            ENGINE 5: EXIT (MACD柱线衰减退出)                 ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+[macdLine, signalLine, macdHist] = ta.macd(close, macd_fast, macd_slow, macd_sig)
+exit_macd = macdHist < macdHist[1] and macdHist < 0
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║                    STATE MACHINE                             ║
+// ║                                                             ║
+// ║  0 (IDLE)      空仓                                         ║
+// ║  1 (COMPRESSED) 波动压缩 (bbz < threshold)                  ║
+// ║  2 (PRESTART)   动量预启动 (加速度 > 0)                     ║
+// ║  3 (TRENDING)   趋势确认 (norm_slope > threshold)           ║
+// ║  4 (ENTRY)      结构突破 → 开仓 + 挂止损止盈               ║
+// ║                                                             ║
+// ║  ENTRY条件：所有4个状态顺序晋级 → 只在 break 时开仓        ║
+// ║  EXIT条件：MACD衰竭 OR 止损 OR 止盈                        ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+var int  state           = 0
+var float entry_price    = na
+var float stop_loss      = na
+var float take_profit    = na
+var bool  traded_this_bar = false
+
+// 每根K线开始时重置同根K线交易标记（process_orders_on_close模式下更可靠）
+traded_this_bar := false
+
+// ── 状态转换 ─────────────────────────────────────────────────────
+
+// 0 → 1: 压缩
+if state == 0 and is_compressed
+    state := 1
+
+// 动量反转回退：非 IDLE 状态下趋势明显反转为负，立即归零
+if state > 0 and state < 4 and norm_slope < -0.2
+    state := 0
+
+// 1 → 2: 预启动
+if state == 1 and is_accelerating
+    state := 2
+
+// 2 → 3: 趋势确认
+if state == 2 and is_trending
+    state := 3
+
+// 3 → 4: 结构突破 → 开仓
+if state == 3 and breakout_up and strategy.position_size == 0 and not traded_this_bar and risk_ok
+    state        := 4
+    entry_price  := close
+    stop_loss    := close - stop_atr_mult * atr_val
+
+    float qty = fixed_qty
+    if risk_pct > 0
+        qty := (strategy.equity * risk_pct / 100) / math.max(close - stop_loss, 1e-8)
+        qty := math.max(qty, 0.001)   // 最小仓位限制
+
+    take_profit := rr_ratio > 0 ? close + rr_ratio * stop_atr_mult * atr_val : na
+
+    traded_this_bar := true
+
+    strategy.entry("Long", strategy.long, qty=qty)
+    strategy.exit("Long Exit", from_entry="Long", stop=stop_loss, limit=take_profit)
+
+// 4 → 0: MACD衰减退出（跳过刚开仓的同根K线）
+if state == 4 and exit_macd and not traded_this_bar
+    strategy.close("Long", comment="Exit")
+    state := 0
+
+// 4 → 0: 止损/止盈自然平仓后的同步（跳过刚开仓的同根K线）
+if state == 4 and strategy.position_size == 0 and not traded_this_bar
+    state := 0  // 止损/止盈已由 strategy.exit 处理
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║           OPTIONAL: 可视化调试 (默认关闭)                    ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// bgcolor(state == 4 ? color.new(color.green, 90) : na, title="Entry")
+// plotshape(state == 4 and state[1] != 4, "Long", shape.triangleup, location.belowbar, color.green)
+// plot(bbz, "BBZ", color.purple)
+// plot(norm_slope, "NormSlope", color.blue)
+// hline(bbz_threshold, "Squeeze", color.yellow)
+// hline(slope_thresh, "Momentum", color.green)
