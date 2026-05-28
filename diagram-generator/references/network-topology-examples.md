@@ -9,12 +9,12 @@ Simple structure: Environment → Datacenter → Zone → Device
 ```json
 {
   "format": "drawio",
-  "title": "基本网络拓扑",
+  "title": "Basic Network Topology",
   "elements": [
     {
       "id": "env-1",
       "type": "container",
-      "name": "生产环境",
+      "name": "Production Environment",
       "level": "environment",
       "style": {
         "fillColor": "#e1d5e7",
@@ -27,7 +27,7 @@ Simple structure: Environment → Datacenter → Zone → Device
         {
           "id": "dc-1",
           "type": "container",
-          "name": "主数据中心",
+          "name": "Primary Datacenter",
           "level": "datacenter",
           "style": {
             "fillColor": "#d5e8d4",
@@ -40,7 +40,7 @@ Simple structure: Environment → Datacenter → Zone → Device
             {
               "id": "zone-1",
               "type": "container",
-              "name": "DMZ区",
+              "name": "DMZ Zone",
               "level": "zone",
               "style": {
                 "fillColor": "#fff2cc",
@@ -53,7 +53,7 @@ Simple structure: Environment → Datacenter → Zone → Device
                 {
                   "id": "fw-1",
                   "type": "node",
-                  "name": "防火墙1",
+                  "name": "Firewall 1",
                   "deviceType": "firewall",
                   "style": {"strokeColor": "#F44336"},
                   "geometry": {"x": 10, "y": 35, "width": 55, "height": 25}
@@ -61,7 +61,7 @@ Simple structure: Environment → Datacenter → Zone → Device
                 {
                   "id": "fw-2",
                   "type": "node",
-                  "name": "防火墙2",
+                  "name": "Firewall 2",
                   "deviceType": "firewall",
                   "style": {"strokeColor": "#F44336"},
                   "geometry": {"x": 75, "y": 35, "width": 55, "height": 25}
@@ -71,7 +71,7 @@ Simple structure: Environment → Datacenter → Zone → Device
             {
               "id": "zone-2",
               "type": "container",
-              "name": "应用区",
+              "name": "App Zone",
               "level": "zone",
               "style": {
                 "fillColor": "#fff2cc",
@@ -84,7 +84,7 @@ Simple structure: Environment → Datacenter → Zone → Device
                 {
                   "id": "app-1",
                   "type": "node",
-                  "name": "应用服务器1",
+                  "name": "App Server 1",
                   "deviceType": "server",
                   "style": {"strokeColor": "#2196F3"},
                   "geometry": {"x": 10, "y": 35, "width": 55, "height": 25}
@@ -92,7 +92,7 @@ Simple structure: Environment → Datacenter → Zone → Device
                 {
                   "id": "app-2",
                   "type": "node",
-                  "name": "应用服务器2",
+                  "name": "App Server 2",
                   "deviceType": "server",
                   "style": {"strokeColor": "#2196F3"},
                   "geometry": {"x": 75, "y": 35, "width": 55, "height": 25}
@@ -128,12 +128,12 @@ Multiple environments with cross-environment connections.
 ```json
 {
   "format": "drawio",
-  "title": "多环境网络拓扑",
+  "title": "Multi-Environment Network Topology",
   "elements": [
     {
       "id": "env-prod",
       "type": "container",
-      "name": "生产环境",
+      "name": "Production Environment",
       "level": "environment",
       "style": {
         "fillColor": "#e1d5e7",
@@ -145,7 +145,7 @@ Multiple environments with cross-environment connections.
         {
           "id": "dc-prod",
           "type": "container",
-          "name": "生产数据中心",
+          "name": "Production Datacenter",
           "level": "datacenter",
           "style": {"fillColor": "#d5e8d4", "strokeColor": "#82b366"},
           "geometry": {"x": 20, "y": 30, "width": 310, "height": 250},
@@ -153,14 +153,14 @@ Multiple environments with cross-environment connections.
             {
               "id": "zone-prod-app",
               "type": "container",
-              "name": "应用区",
+              "name": "App Zone",
               "level": "zone",
               "geometry": {"x": 20, "y": 20, "width": 120, "height": 80},
               "children": [
                 {
                   "id": "prod-app-1",
                   "type": "node",
-                  "name": "应用服务器",
+                  "name": "App Server",
                   "deviceType": "server",
                   "style": {"strokeColor": "#2196F3"},
                   "geometry": {"x": 10, "y": 25, "width": 55, "height": 25}
@@ -174,7 +174,7 @@ Multiple environments with cross-environment connections.
     {
       "id": "env-dr",
       "type": "container",
-      "name": "灾备环境",
+      "name": "DR Environment",
       "level": "environment",
       "style": {
         "fillColor": "#e1d5e7",
@@ -186,7 +186,7 @@ Multiple environments with cross-environment connections.
         {
           "id": "dc-dr",
           "type": "container",
-          "name": "灾备数据中心",
+          "name": "DR Datacenter",
           "level": "datacenter",
           "style": {"fillColor": "#d5e8d4", "strokeColor": "#82b366"},
           "geometry": {"x": 20, "y": 30, "width": 310, "height": 250},
@@ -194,14 +194,14 @@ Multiple environments with cross-environment connections.
             {
               "id": "zone-dr-app",
               "type": "container",
-              "name": "应用区",
+              "name": "App Zone",
               "level": "zone",
               "geometry": {"x": 20, "y": 20, "width": 120, "height": 80},
               "children": [
                 {
                   "id": "dr-app-1",
                   "type": "node",
-                  "name": "应用服务器",
+                  "name": "App Server",
                   "deviceType": "server",
                   "style": {"strokeColor": "#2196F3"},
                   "geometry": {"x": 10, "y": 25, "width": 55, "height": 25}
@@ -217,7 +217,7 @@ Multiple environments with cross-environment connections.
       "type": "edge",
       "source": "prod-app-1",
       "target": "dr-app-1",
-      "label": "数据同步",
+      "label": "Data Sync",
       "style": {
         "strokeColor": "#FF3333",
         "strokeWidth": 2,
@@ -230,17 +230,17 @@ Multiple environments with cross-environment connections.
 
 ## 4-Level Nested Topology
 
-Full hierarchy as shown in the 贵州.drawio example.
+Full hierarchy as shown in the Guizhou.drawio example.
 
 ```json
 {
   "format": "drawio",
-  "title": "4层嵌套网络拓扑",
+  "title": "4-Level Nested Network Topology",
   "elements": [
     {
       "id": "env-1",
       "type": "container",
-      "name": "省中心管理端",
+      "name": "Provincial Management Center",
       "level": "environment",
       "style": {
         "fillColor": "#e1d5e7",
@@ -252,7 +252,7 @@ Full hierarchy as shown in the 贵州.drawio example.
         {
           "id": "dc-1",
           "type": "container",
-          "name": "省中心机房",
+          "name": "Provincial Datacenter",
           "level": "datacenter",
           "style": {
             "fillColor": "#d5e8d4",
@@ -264,7 +264,7 @@ Full hierarchy as shown in the 贵州.drawio example.
             {
               "id": "zone-1",
               "type": "container",
-              "name": "上联区",
+              "name": "Upstream Zone",
               "level": "zone",
               "style": {
                 "fillColor": "#fff2cc",
@@ -276,7 +276,7 @@ Full hierarchy as shown in the 贵州.drawio example.
                 {
                   "id": "router-1",
                   "type": "node",
-                  "name": "路由器1",
+                  "name": "Router 1",
                   "deviceType": "router",
                   "style": {"strokeColor": "#607D8B"},
                   "geometry": {"x": 8, "y": 25, "width": 55, "height": 25}
@@ -284,7 +284,7 @@ Full hierarchy as shown in the 贵州.drawio example.
                 {
                   "id": "router-2",
                   "type": "node",
-                  "name": "路由器2",
+                  "name": "Router 2",
                   "deviceType": "router",
                   "style": {"strokeColor": "#607D8B"},
                   "geometry": {"x": 68, "y": 25, "width": 55, "height": 25}
@@ -294,7 +294,7 @@ Full hierarchy as shown in the 贵州.drawio example.
             {
               "id": "zone-2",
               "type": "container",
-              "name": "汇聚区",
+              "name": "Aggregation Zone",
               "level": "zone",
               "style": {
                 "fillColor": "#fff2cc",
@@ -306,7 +306,7 @@ Full hierarchy as shown in the 贵州.drawio example.
                 {
                   "id": "switch-1",
                   "type": "node",
-                  "name": "汇聚交换机1",
+                  "name": "Aggregation Switch 1",
                   "deviceType": "switch",
                   "style": {"strokeColor": "#4CAF50"},
                   "geometry": {"x": 8, "y": 25, "width": 55, "height": 25}
@@ -314,7 +314,7 @@ Full hierarchy as shown in the 贵州.drawio example.
                 {
                   "id": "switch-2",
                   "type": "node",
-                  "name": "汇聚交换机2",
+                  "name": "Aggregation Switch 2",
                   "deviceType": "switch",
                   "style": {"strokeColor": "#4CAF50"},
                   "geometry": {"x": 68, "y": 25, "width": 55, "height": 25}
@@ -324,7 +324,7 @@ Full hierarchy as shown in the 贵州.drawio example.
             {
               "id": "zone-3",
               "type": "container",
-              "name": "终端区",
+              "name": "Terminal Zone",
               "level": "zone",
               "style": {
                 "fillColor": "#fff2cc",
@@ -336,7 +336,7 @@ Full hierarchy as shown in the 贵州.drawio example.
                 {
                   "id": "pc-1",
                   "type": "node",
-                  "name": "管理端PC1",
+                  "name": "Management PC 1",
                   "deviceType": "pc",
                   "style": {"strokeColor": "#607D8B"},
                   "geometry": {"x": 8, "y": 110, "width": 55, "height": 25}
@@ -344,7 +344,7 @@ Full hierarchy as shown in the 贵州.drawio example.
                 {
                   "id": "pc-2",
                   "type": "node",
-                  "name": "管理端PC2",
+                  "name": "Management PC 2",
                   "deviceType": "pc",
                   "style": {"strokeColor": "#607D8B"},
                   "geometry": {"x": 68, "y": 110, "width": 55, "height": 25}
@@ -358,7 +358,7 @@ Full hierarchy as shown in the 贵州.drawio example.
     {
       "id": "env-2",
       "type": "container",
-      "name": "生产网",
+      "name": "Production Network",
       "level": "environment",
       "style": {
         "fillColor": "#e1d5e7",
@@ -370,7 +370,7 @@ Full hierarchy as shown in the 贵州.drawio example.
         {
           "id": "dc-2",
           "type": "container",
-          "name": "西五环",
+          "name": "West 5th Ring Datacenter",
           "level": "datacenter",
           "style": {
             "fillColor": "#d5e8d4",
@@ -382,7 +382,7 @@ Full hierarchy as shown in the 贵州.drawio example.
             {
               "id": "zone-4",
               "type": "container",
-              "name": "内联接入区",
+              "name": "Intranet Access Zone",
               "level": "zone",
               "style": {
                 "fillColor": "#fff2cc",
@@ -394,7 +394,7 @@ Full hierarchy as shown in the 贵州.drawio example.
                 {
                   "id": "router-3",
                   "type": "node",
-                  "name": "路由器1",
+                  "name": "Router 1",
                   "deviceType": "router",
                   "style": {"strokeColor": "#607D8B"},
                   "geometry": {"x": 8, "y": 25, "width": 55, "height": 25}
@@ -445,7 +445,7 @@ Full hierarchy as shown in the 贵州.drawio example.
       "type": "edge",
       "source": "router-1",
       "target": "router-3",
-      "label": "长途专线",
+      "label": "Long-Distance Leased Line",
       "style": {"strokeColor": "#FF3333"}
     }
   ]
@@ -456,16 +456,16 @@ Full hierarchy as shown in the 贵州.drawio example.
 
 | Zone Name | Typical Devices | Use Case |
 |-----------|-----------------|----------|
-| 上联区 | Routers | External network connections |
-| 汇聚区 | Core Switches | Traffic aggregation |
-| 终端区 | Switches, PCs | End-user devices |
-| 彩银区 | Firewalls, Routers | Financial network integration |
-| 内联接入区 | Routers | Internal network connections |
-| 外联接入区 | Routers | External partner connections |
-| DMZ区 | Firewalls, Public Servers | Public-facing services |
-| 应用区 | Application Servers | Application deployment |
-| 数据区 | Database Servers | Data storage |
-| 管理区 | Management Servers | Administrative access |
+| Upstream Zone | Routers | External network connections |
+| Aggregation Zone | Core Switches | Traffic aggregation |
+| Terminal Zone | Switches, PCs | End-user devices |
+| Financial Zone | Firewalls, Routers | Financial network integration |
+| Intranet Access Zone | Routers | Internal network connections |
+| Extranet Access Zone | Routers | External partner connections |
+| DMZ Zone | Firewalls, Public Servers | Public-facing services |
+| App Zone | Application Servers | Application deployment |
+| Data Zone | Database Servers | Data storage |
+| Management Zone | Management Servers | Administrative access |
 
 ## Connection Patterns
 
@@ -497,7 +497,7 @@ Full hierarchy as shown in the 贵州.drawio example.
   "type": "edge",
   "source": "prod-db",
   "target": "dr-db",
-  "label": "数据同步",
+  "label": "Data Sync",
   "style": {
     "strokeColor": "#FF3333",
     "dashPattern": "5,5"

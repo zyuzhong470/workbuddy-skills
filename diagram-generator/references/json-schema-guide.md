@@ -15,6 +15,11 @@ Complete schema for diagram specification passed to `mcp-diagram-generator` MCP 
       "enum": ["drawio", "mermaid", "excalidraw"],
       "description": "Target diagram format"
     },
+    "diagramType": {
+      "type": "string",
+      "enum": ["flowchart", "sequence", "class", "er"],
+      "description": "Target diagram type (optional, auto-inferred if not provided)"
+    },
     "title": {
       "type": "string",
       "description": "Diagram title (used as page name in drawio, or header in other formats)"
@@ -134,7 +139,7 @@ Used for environments, datacenters, zones, or any grouping.
 {
   "id": "env-1",
   "type": "container",
-  "name": "省中心管理端",
+  "name": "Provincial Management Center",
   "level": "environment",
   "style": {
     "fillColor": "#e1d5e7",
@@ -160,7 +165,7 @@ Used for devices, components, steps, etc.
 {
   "id": "device-1",
   "type": "node",
-  "name": "路由器1",
+  "name": "Router 1",
   "deviceType": "router",
   "style": {
     "fillColor": "none",
@@ -189,7 +194,7 @@ Used to connect nodes.
   "type": "edge",
   "source": "device-1",
   "target": "device-2",
-  "label": "专线连接",
+  "label": "Dedicated Line Connection",
   "style": {
     "strokeColor": "#FF3333",
     "strokeWidth": 2,
@@ -204,12 +209,12 @@ Used to connect nodes.
 ```json
 {
   "format": "drawio",
-  "title": "新架构",
+  "title": "New Architecture",
   "elements": [
     {
       "id": "env-1",
       "type": "container",
-      "name": "省中心管理端",
+      "name": "Provincial Management Center",
       "level": "environment",
       "style": {
         "fillColor": "#e1d5e7",
@@ -222,7 +227,7 @@ Used to connect nodes.
         {
           "id": "dc-1",
           "type": "container",
-          "name": "省中心机房",
+          "name": "Provincial Datacenter",
           "level": "datacenter",
           "style": {
             "fillColor": "#d5e8d4",
@@ -235,7 +240,7 @@ Used to connect nodes.
             {
               "id": "zone-1",
               "type": "container",
-              "name": "上联区",
+              "name": "Upstream Zone",
               "level": "zone",
               "style": {
                 "fillColor": "#fff2cc",
@@ -248,7 +253,7 @@ Used to connect nodes.
                 {
                   "id": "router-1",
                   "type": "node",
-                  "name": "路由器1",
+                  "name": "Router 1",
                   "deviceType": "router",
                   "style": {
                     "fillColor": "none",
@@ -260,7 +265,7 @@ Used to connect nodes.
                 {
                   "id": "router-2",
                   "type": "node",
-                  "name": "路由器2",
+                  "name": "Router 2",
                   "deviceType": "router",
                   "style": {
                     "fillColor": "none",
@@ -294,40 +299,40 @@ Used to connect nodes.
 ```json
 {
   "format": "mermaid",
-  "title": "用户登录流程",
+  "title": "User Login Flow",
   "elements": [
     {
       "id": "start",
       "type": "node",
-      "name": "开始",
+      "name": "Start",
       "shape": "rounded",
       "geometry": {"x": 200, "y": 0}
     },
     {
       "id": "input",
       "type": "node",
-      "name": "输入用户名密码",
+      "name": "Input Username and Password",
       "shape": "parallelogram",
       "geometry": {"x": 200, "y": 100}
     },
     {
       "id": "validate",
       "type": "node",
-      "name": "验证",
+      "name": "Validate",
       "shape": "diamond",
       "geometry": {"x": 200, "y": 200}
     },
     {
       "id": "success",
       "type": "node",
-      "name": "登录成功",
+      "name": "Login Success",
       "shape": "rounded",
       "geometry": {"x": 100, "y": 350}
     },
     {
       "id": "error",
       "type": "node",
-      "name": "显示错误",
+      "name": "Show Error",
       "shape": "rect",
       "geometry": {"x": 300, "y": 350}
     },
@@ -348,14 +353,14 @@ Used to connect nodes.
       "type": "edge",
       "source": "validate",
       "target": "success",
-      "label": "成功"
+      "label": "Success"
     },
     {
       "id": "edge-4",
       "type": "edge",
       "source": "validate",
       "target": "error",
-      "label": "失败"
+      "label": "Failure"
     }
   ]
 }
@@ -366,34 +371,34 @@ Used to connect nodes.
 ```json
 {
   "format": "mermaid",
-  "title": "API调用流程",
+  "title": "API Call Flow",
   "elements": [
     {
       "id": "user",
       "type": "node",
-      "name": "用户"
+      "name": "User"
     },
     {
       "id": "frontend",
       "type": "node",
-      "name": "前端"
+      "name": "Frontend"
     },
     {
       "id": "api",
       "type": "node",
-      "name": "API服务"
+      "name": "API Service"
     },
     {
       "id": "db",
       "type": "node",
-      "name": "数据库"
+      "name": "Database"
     },
     {
       "id": "edge-1",
       "type": "edge",
       "source": "user",
       "target": "frontend",
-      "label": "点击登录"
+      "label": "Click Login"
     },
     {
       "id": "edge-2",
@@ -407,14 +412,14 @@ Used to connect nodes.
       "type": "edge",
       "source": "api",
       "target": "db",
-      "label": "查询用户"
+      "label": "Query User"
     },
     {
       "id": "edge-4",
       "type": "edge",
       "source": "db",
       "target": "api",
-      "label": "返回数据",
+      "label": "Return Data",
       "style": {
         "lineStyle": "dashed",
         "endArrow": "none"
