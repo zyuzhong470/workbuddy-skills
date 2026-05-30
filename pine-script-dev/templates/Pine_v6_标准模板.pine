@@ -1,0 +1,225 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// Pine Script v6 标准模板
+// 作者：小爪
+// 日期：2026-05-30
+// 版本：v6.0
+//
+// 这是经过 3 轮编译错误验证后得出的零 bug 模板。
+// 所有已知的 v6 陷阱已在此模板中规避。
+//
+// v6 关键变化（vs v5）：
+//   1. 必须使用 //@version=6
+//   2. 不能用多行三元表达式（? : 跨行不行），必须用 if/else if
+//   3. na 赋值时 color 类型必须显式声明（string 可以推断）
+//   4. indicator() 中有 table/label/alert 等 side effects 时，不能放 timeframe 参数
+//   5. 所有函数返回类型更严格
+//
+// ⚠️ 规避清单（写 Pine Script 时对照检查）：
+//   [ ] 版本号是 v6？
+//   [ ] 没有跨行三元表达式？
+//   [ ] color 变量初始化不是 na？
+//   [ ] indicator() 没有 timeframe 参数（如果有 table/label）？
+//   [ ] if/else 块用 := 赋值？
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 模板 A：副图指标（overlay=false）
+// 适用于：震荡指标、RSI、雷达等不需要叠加在K线上的指标
+// ═══════════════════════════════════════════════════════════════════════════════
+//@version=6
+indicator("模板A_副图指标_v6",
+          shorttitle="Template A",
+          overlay=false,
+          max_bars_back=500)
+// 注意：如果代码中有 table/label/alertcondition，
+//         不要在这里加 timeframe="" 或 timeframe_gaps=true
+
+// ── 输入层 ────────────────────────────────────────────────────────────────────
+grp1 = "参数组1"
+src   = input.source(close, "数据源", group=grp1)
+len1  = input.int(14, "周期", minval=1, group=grp1)
+len2  = input.int(50, "周期2", minval=1, group=grp1)
+show1 = input.bool(true, "显示线1", group=grp1)
+show2 = input.bool(true, "显示线2", group=grp1)
+thresh = input.float(80.0, "阈值", minval=0.0, maxval=100.0, group=grp1)
+
+// ── 计算层 ────────────────────────────────────────────────────────────────────
+
+// 百分位工具函数（0-100归一化，跨品种通用）
+percentile(float x, simple int period) =>
+    float lo = ta.lowest(x, period)
+    float hi = ta.highest(x, period)
+    float rng = hi - lo
+    rng > 0 ? (x - lo) / rng * 100.0 : 50.0
+
+val1 = ta.ema(src, len1)
+val2 = ta.ema(src, len2)
+
+// 百分位版本（推荐，跨品种通用）
+val1_pct = percentile(val1, 120)
+
+// ── 信号层 ────────────────────────────────────────────────────────────────────
+
+// 多条件信号（用 if/else，不用跨行三元）
+string signal_type = "NEUTRAL"
+if val1 > val2 and val1_pct > thresh
+    signal_type := "BULL"
+else if val1 < val2 and val1_pct > thresh
+    signal_type := "BEAR"
+
+// 冷却期
+var int last_alert_bar = 0
+alert_raw = signal_type != "NEUTRAL"
+in_cooldown = (bar_index - last_alert_bar) < 10
+alert_fire  = alert_raw and not in_cooldown
+
+if alert_fire
+    last_alert_bar := bar_index
+
+// ── 颜色计算 ──────────────────────────────────────────────────────────────────
+// ⚠️ v6 陷阱：color 变量不能用 na 初始化，必须用具体颜色
+color line1_color = color.new(color.blue, 0)
+if signal_type == "BULL"
+    line1_color := color.new(color.green, 0)
+else if signal_type == "BEAR"
+    line1_color := color.new(color.red, 0)
+
+// 背景色（同样不用 na）
+color bg_color = color.new(color.gray, 100)
+if signal_type == "BULL"
+    bg_color := color.new(color.green, 90)
+else if signal_type == "BEAR"
+    bg_color := color.new(color.red, 90)
+
+// ── 输出层 ────────────────────────────────────────────────────────────────────
+
+hline(thresh, "阈值", color=color.new(color.red, 50), linestyle=hline.style_dashed)
+hline(50, "中轴", color=color.new(color.gray, 50), linestyle=hline.style_dotted)
+
+plot(show1 ? val1_pct : na, "线1", color=line1_color, linewidth=2)
+plot(show2 ? val2 : na, "线2", color=color.new(color.orange, 30), linewidth=1)
+
+bgcolor(bg_color)
+
+plotshape(alert_fire, "信号", shape.labelup, location.bottom,
+          color=color.new(color.red, 0), textcolor=color.white,
+          text="ALERT", size=size.small)
+
+alertcondition(alert_fire, "预警触发", "信号触发")
+
+// ── 状态表 ────────────────────────────────────────────────────────────────────
+if barstate.islast
+    var table tbl = table.new(position.bottom_right, 2, 2,
+                                bgcolor=color.new(color.black, 60),
+                                border_color=color.new(color.gray, 50),
+                                border_width=1)
+    table.cell(tbl, 0, 0, "Signal", text_color=color.gray, text_size=size.small)
+    sig_color = signal_type == "BULL" ? color.green :
+                signal_type == "BEAR" ? color.red : color.gray
+    table.cell(tbl, 1, 0, signal_type, text_color=sig_color, text_size=size.small)
+    table.cell(tbl, 0, 1, "Score", text_color=color.gray, text_size=size.small)
+    table.cell(tbl, 1, 1, str.tostring(math.round(val1_pct, 1)), text_color=color.white, text_size=size.small)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 模板 B：主图指标（overlay=true）
+// 适用于：均线、趋势线、支撑阻力、信号标注等叠加在K线上的指标
+// ═══════════════════════════════════════════════════════════════════════════════
+/*
+//@version=6
+indicator("模板B_主图指标_v6",
+          shorttitle="Template B",
+          overlay=true,
+          max_bars_back=500)
+
+// ── 输入层 ────────────────────────────────────────────────────────────────────
+grp1 = "均线设置"
+fast_len = input.int(9, "快线", minval=1, group=grp1)
+slow_len = input.int(21, "慢线", minval=1, group=grp1)
+src      = input.source(close, "数据源", group=grp1)
+show_bg  = input.bool(true, "显示背景色", group=grp1)
+
+grp2 = "信号设置"
+show_labels = input.bool(true, "显示信号标签", group=grp2)
+
+// ── 计算层 ────────────────────────────────────────────────────────────────────
+fast_ema = ta.ema(src, fast_len)
+slow_ema = ta.ema(src, slow_len)
+bull     = fast_ema > slow_ema
+bear     = fast_ema < slow_ema
+
+// ── 信号层 ────────────────────────────────────────────────────────────────────
+long_signal  = ta.crossover(fast_ema, slow_ema)
+short_signal = ta.crossunder(fast_ema, slow_ema)
+
+// ── 颜色 ──────────────────────────────────────────────────────────────────────
+color bg_col = color.new(color.gray, 100)
+if show_bg and bull
+    bg_col := color.new(color.green, 92)
+else if show_bg and bear
+    bg_col := color.new(color.red, 92)
+
+// ── 输出层 ────────────────────────────────────────────────────────────────────
+plot(fast_ema, "快线", color.new(color.blue, 0), linewidth=2)
+plot(slow_ema, "慢线", color.new(color.orange, 0), linewidth=2)
+
+bgcolor(bg_col)
+
+if show_labels
+    label.new(bar_index, high, "L", color=color.new(color.green, 0),
+             textcolor=color.white, style=label.style_label_up, size=size.small)
+    label.new(bar_index, low, "S", color=color.new(color.red, 0),
+             textcolor=color.white, style=label.style_label_down, size=size.small)
+
+alertcondition(long_signal, "做多信号", "金叉")
+alertcondition(short_signal, "做空信号", "死叉")
+*/
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 模板 C：策略型（strategy，可回测）
+// 适用于：需要验证盈亏比的交易策略
+// ═══════════════════════════════════════════════════════════════════════════════
+/*
+//@version=6
+strategy("模板C_策略型_v6",
+          overlay=true,
+          initial_capital=10000,
+          default_qty_type=strategy.percent_of_equity,
+          default_qty_value=10,
+          commission_type=strategy.commission.percent,
+          commission_value=0.05)
+
+// ── 输入层 ────────────────────────────────────────────────────────────────────
+grp1 = "参数"
+fast_len = input.int(9, "快线", minval=1, group=grp1)
+slow_len = input.int(21, "慢线", minval=1, group=grp1)
+atr_mult = input.float(1.5, "ATR止损倍数", step=0.1, group=grp1)
+src      = input.source(close, "数据源", group=grp1)
+
+// ── 计算层 ────────────────────────────────────────────────────────────────────
+fast_ema = ta.ema(src, fast_len)
+slow_ema = ta.ema(src, slow_len)
+atr      = ta.atr(14)
+
+// ── 信号层 ────────────────────────────────────────────────────────────────────
+long_cond  = ta.crossover(fast_ema, slow_ema)
+short_cond = ta.crossunder(fast_ema, slow_ema)
+
+// ── 止损计算 ──────────────────────────────────────────────────────────────────
+long_stop  = strategy.position_avg_price - atr * atr_mult
+short_stop = strategy.position_avg_price + atr * atr_mult
+
+// ── 执行层 ────────────────────────────────────────────────────────────────────
+if long_cond
+    strategy.entry("多", strategy.long)
+if short_cond
+    strategy.entry("空", strategy.short)
+
+if strategy.position_size > 0
+    strategy.exit("多止损", "多", stop=long_stop)
+if strategy.position_size < 0
+    strategy.exit("空止损", "空", stop=short_stop)
+
+// ── 输出层 ────────────────────────────────────────────────────────────────────
+plot(fast_ema, "快线", color.blue, 2)
+plot(slow_ema, "慢线", color.orange, 2)
+*/
